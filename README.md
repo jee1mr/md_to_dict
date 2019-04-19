@@ -1,2 +1,6 @@
 # md_to_dict
-Parse Markdown into python dictionary
+
+### Convert Markdown into python dictionary
+
+* Usage:
+	`$ python md_to_dict.py test.md`
