@@ -7,6 +7,14 @@
 * Usage:
 	`$ python md_to_dict.py test.md`
 
+* Usage in code:
+```python
+	from md_to_dict import MarkdownParser
+
+	md_parser = MarkdownParser(path_to_file)
+	md_dict = md_parser.parse()
+```
+
 ### Example
 #### Input
 
