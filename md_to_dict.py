@@ -52,11 +52,6 @@ class TreeToJson(Transformer):
         s = [x for x in s if x]
         return dict(ChainMap(*s))
 
-    number = v_args(inline=True)(float)
-    null = lambda self, _: None
-    true = lambda self, _: True
-    false = lambda self, _: False
-
 class MarkdownParser():
     """
         Parse markdown into python dictionary
