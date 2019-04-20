@@ -1,6 +1,6 @@
 import re
 import sys
-from lark import Lark, Transformer, v_args
+from lark import Lark, Transformer, v_args, exceptions
 from collections import ChainMap
 
 markdown_grammar = r"""
@@ -12,7 +12,7 @@ header: "#" string
 invalid_header: /\#{2,}/ string
 pair : "*" string ":" string
 invalid: string
-string: /[a-z0-9A-Z. ]+/
+string: /[a-z0-9A-Z.'\-\!\?\,\/ ]+/
 key: string
 value: string
 
@@ -80,4 +80,8 @@ def test():
 if __name__ == '__main__':
     # test()
     with open(sys.argv[1]) as f:
-        print(markdown_parser.parse(f.read()))
+        try:
+            print(markdown_parser.parse(f.read()))
+        except exceptions.UnexpectedToken:
+            print('Markdown provided cannot be parsed into a dictionary. Please use proper formatting.')
+
