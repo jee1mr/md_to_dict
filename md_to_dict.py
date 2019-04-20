@@ -1,29 +1,10 @@
 import re
 import sys
-from lark import Lark, Transformer, v_args, exceptions
+from lark import Lark, Transformer, v_args
+from lark.exceptions import *
 from collections import ChainMap
 
-markdown_grammar = r"""
-?start: dictionary
-dictionary: (header_pair | invalid_header_pair)*
-invalid_header_pair: invalid_header (pair+ | invalid)*
-header_pair: header (pair+ | invalid)*
-header: "#" string
-invalid_header: /\#{2,}/ string
-pair : "*" string ":" string
-invalid: string
-string: /[a-z0-9A-Z.'\-\!\?\,\/ ]+/
-key: string
-value: string
-
-%import common.WS
-%ignore WS
-"""
-
-output = {}
-
 class TreeToJson(Transformer):
-    # TODO: do not strip spaces from value
     @v_args(inline=True)
     def string(self, s):
         """
@@ -54,34 +35,55 @@ class TreeToJson(Transformer):
         s = [x for x in s if x]
         return dict(ChainMap(*s))
 
-markdown_parser = Lark(markdown_grammar, parser='lalr', lexer='standard', transformer=TreeToJson())
+class MarkdownParser():
+    """
+        Parse markdown into python dictionary
+        Example:
+            from md_to_dict import MarkdownParser
+            md_parser = MarkdownParser(path_to_file)
+            md_dict = md_parser.parse()
+        TODO:
+            1. Do not strip space from value field
+            2. Retain integer/float/array data type when parsing numbers/array
+    """
+    def __init__(self, filename='', input_md=''):
+        self.markdown_grammar = r"""
+                ?start: dictionary
+                dictionary: (header_pair | invalid_header_pair)*
+                invalid_header_pair: invalid_header (pair+ | invalid)*
+                header_pair: header (pair+ | invalid)*
+                header: "#" string
+                invalid_header: /\#{2,}/ string
+                pair : "*" string ":" string
+                invalid: string
+                string: /[a-z0-9A-Z.'\-\!\?\,\/ ]+/
+                key: string
+                value: string
 
-def test():
-    test_markdown = '''
-    
-    # Vendor
-    
-    * Vendor name: test vendor
-    * Vendor website: www.test.com
-    
-    # Data
-    
-    this text is ignored
-    
-    * Data Description: awesome stuff
-    * Asset class: Equity
-    
-    ## subheading 
-    
-    '''
+                %import common.WS
+                %ignore WS
+            """
+        self.filename = filename
+        self.input_md = input_md
+        self.parser = Lark(self.markdown_grammar, parser='lalr', lexer='standard', transformer=TreeToJson())
 
-    print(markdown_parser.parse(test_markdown))
+        if self.filename:
+            with open(filename) as f:
+                self.input_md = f.read()
+
+    def parse(self):
+        try:
+            output = self.parser.parse(self.input_md)
+            return output
+        except (ParseError, UnexpectedInput, UnexpectedToken):
+            print('Markdown provided cannot be parsed into a dictionary. Please use proper formatting.')
+        except Exception as e:
+            print('Exception occured: ', e)
 
 if __name__ == '__main__':
-    # test()
-    with open(sys.argv[1]) as f:
-        try:
-            print(markdown_parser.parse(f.read()))
-        except exceptions.UnexpectedToken:
-            print('Markdown provided cannot be parsed into a dictionary. Please use proper formatting.')
-
+    if len(sys.argv) < 2:
+        print('Invalid Usage')
+        print('Correct Usage: python md_to_dict.py <path_to_markdown_file>')
+    else:
+        md_parser = MarkdownParser(sys.argv[1])
+        print(md_parser.parse())
