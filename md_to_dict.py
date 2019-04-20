@@ -6,12 +6,29 @@ from collections import ChainMap
 
 class TreeToJson(Transformer):
     @v_args(inline=True)
-    def string(self, s):
+    def key(self, s):
         """
         Replace spaces with underscore and strip leading
         and trailing whitespaces
         """
         return re.sub(r"\s+", '_', s.lower().lstrip(' ').rstrip(' '))
+
+    @v_args(inline=True)
+    def string(self, s):
+        """
+        Strip leading and trailing whitespaces
+        Parse float, bool, null
+        """
+        val = s.lstrip(' ').rstrip(' ')
+        try:
+            val = float(s)
+            return val
+        except Exception:
+            pass
+        values = {"null": None, "true": True, "false": False}
+        if val in values:
+            return values[val]
+        return val
 
     def header(self, s):
         return s[0]
@@ -35,6 +52,11 @@ class TreeToJson(Transformer):
         s = [x for x in s if x]
         return dict(ChainMap(*s))
 
+    number = v_args(inline=True)(float)
+    null = lambda self, _: None
+    true = lambda self, _: True
+    false = lambda self, _: False
+
 class MarkdownParser():
     """
         Parse markdown into python dictionary
@@ -43,8 +65,7 @@ class MarkdownParser():
             md_parser = MarkdownParser(path_to_file)
             md_dict = md_parser.parse()
         TODO:
-            1. Do not strip space from value field
-            2. Retain integer/float/array data type when parsing numbers/array
+            1. Retain integer/float/array data type when parsing numbers/array
     """
     def __init__(self, filename='', input_md=''):
         self.markdown_grammar = r"""
@@ -52,15 +73,16 @@ class MarkdownParser():
                 dictionary: (header_pair | invalid_header_pair)*
                 invalid_header_pair: invalid_header (pair+ | invalid)*
                 header_pair: header (pair+ | invalid)*
-                header: "#" string
+                header: "#" key
                 invalid_header: /\#{2,}/ string
-                pair : "*" string ":" string
+                pair : "*" key ":" value
                 invalid: string
+                ?value: string
                 string: /[a-z0-9A-Z.'\-\!\?\,\/ ]+/
-                key: string
-                value: string
+                key: /[a-z0-9A-Z.'\-\!\?\,\/ ]+/
 
                 %import common.WS
+                %import common.SIGNED_NUMBER
                 %ignore WS
             """
         self.filename = filename
@@ -75,8 +97,8 @@ class MarkdownParser():
         try:
             output = self.parser.parse(self.input_md)
             return output
-        except (ParseError, UnexpectedInput, UnexpectedToken):
-            print('Markdown provided cannot be parsed into a dictionary. Please use proper formatting.')
+        except (ParseError, UnexpectedInput, UnexpectedToken) as e:
+            print('Markdown provided cannot be parsed into a dictionary. Please use proper formatting.', e)
         except Exception as e:
             print('Exception occured: ', e)
 
