@@ -5,7 +5,7 @@
 * Installation:
 	`$ pip install -r requirements.txt`
 * Command-line Usage:
-	`$ python md_to_dict.py test.md`
+	`$ python md_to_dict.py test_files/test.md`
 
 * Usage in code:
 ```python
